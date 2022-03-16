@@ -2,7 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 
-int main() {
+void main(void) {
     char answer[10];
 
     printf("Lire ou ecrire ? ");
