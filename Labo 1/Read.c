@@ -1,7 +1,7 @@
 #define _CRT_SECURE_NO_WARNINGS
 #include <stdio.h>
 
-int main() {
+void main(void) {
     FILE* afile = fopen("data_subjects_info.csv", "r");
     
     if (afile == NULL) {
