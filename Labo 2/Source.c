@@ -13,7 +13,7 @@
 #define LG_VALUE 200
 #define LG_PATH 50
 
-bool startFile(char path[LG_PATH], char createFile[LG_NAME], int currentFile, bool firstLine);
+bool startFile(char path[LG_PATH], char createFile[LG_NAME], int index, bool firstLine, int currentFile);
 double searchAcc(int numLine, char path[LG_PATH], int numCol);
 int nbMouvement(char path[LG_PATH]);
 double totalVacc(double x, double y, double z);
@@ -21,24 +21,25 @@ int searchGender(int numPerson);
 
 void main(void) {
     char paths[NB_FOLDER][LG_NAME] = {
-        "dws_1/sub_",
-        "dws_2/sub_",
-        "dws_11/sub_",
-        "jog_9/sub_",
-        "jog_16/sub_",
-        "sit_5/sub_",
-        "sit_13/sub_",
-        "std_6/sub_",
-        "std_14/sub_",
-        "ups_3/sub_",
-        "ups_4/sub_",
-        "ups_12/sub_",
-        "wlk_7/sub_",
-        "wlk_8/sub_",
-        "wlk_15/sub_"
+        "A_DeviceMotion_data/dws_1/sub_",
+        "A_DeviceMotion_data/dws_2/sub_",
+        "A_DeviceMotion_data/dws_11/sub_",
+        "A_DeviceMotion_data/jog_9/sub_",
+        "A_DeviceMotion_data/jog_16/sub_",
+        "A_DeviceMotion_data/sit_5/sub_",
+        "A_DeviceMotion_data/sit_13/sub_",
+        "A_DeviceMotion_data/std_6/sub_",
+        "A_DeviceMotion_data/std_14/sub_",
+        "A_DeviceMotion_data/ups_3/sub_",
+        "A_DeviceMotion_data/ups_4/sub_",
+        "A_DeviceMotion_data/ups_12/sub_",
+        "A_DeviceMotion_data/wlk_7/sub_",
+        "A_DeviceMotion_data/wlk_8/sub_",
+        "A_DeviceMotion_data/wlk_15/sub_"
     };
 
-    int currentFile = 1;
+    int index = 1;
+    int currentFile;
 
     bool firstLine = false;
     for (int i = 0; i < NB_FOLDER; i++) {
@@ -50,40 +51,42 @@ void main(void) {
 
             char charJ[3];
             sprintf(charJ, "%d", j);
+            currentFile = j;
 
             strcpy_s(pathInter, LG_PATH, path);
             strcat(pathInter, charJ);
             strcat(pathInter, ".csv");
 
-            firstLine = startFile(pathInter, "trainSet.csv", currentFile, firstLine);
-            currentFile++;
+            firstLine = startFile(pathInter, "trainSet.csv", index, firstLine, currentFile);
+            index++;
         }
     }
     puts("File trainSet.csv complete.");
 
     firstLine = false;
-    for (int i = 1; i < NB_FOLDER; i++) {
+    for (int i = 0; i < NB_FOLDER; i++) {
         char path[LG_PATH];
         strcpy_s(path, LG_PATH, paths[i]);
 
-        for (int j = 23; j <= NB_FILE; j++) {
+        for (int j = 1; j <= NB_FILE; j++) {
             char pathInter[LG_PATH];
 
             char charJ[3];
             sprintf(charJ, "%d", j);
+            currentFile = j;
 
             strcpy_s(pathInter, LG_PATH, path);
             strcat(pathInter, charJ);
             strcat(pathInter, ".csv");
 
-            firstLine = startFile(pathInter, "testSet.csv", currentFile, firstLine);
-            currentFile++;
+            firstLine = startFile(pathInter, "testSet.csv", index, firstLine, currentFile);
+            index++;
         }
     }
     puts("File testSet.csv complete.");
 }
 
-bool startFile(char path[LG_PATH], char createFile[LG_NAME], int currentFile, bool firstLine) {
+bool startFile(char path[LG_PATH], char createFile[LG_NAME], int index, bool firstLine, int currentFile) {
     FILE* writeFile = fopen(createFile, "a+");
 
     if (writeFile == NULL) {
@@ -109,7 +112,7 @@ bool startFile(char path[LG_PATH], char createFile[LG_NAME], int currentFile, bo
         
         double calcAcc = totalVacc(accX, accY, accZ);
 
-        fprintf(writeFile, "%d,%d,%d,%f\n", i, gender, currentFile, calcAcc);
+        fprintf(writeFile, "%d,%d,%d,%f\n", i, gender, index, calcAcc);
     }
     
     fclose(writeFile);
