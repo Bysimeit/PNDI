@@ -68,7 +68,7 @@ void main(void) {
         char path[LG_PATH];
         strcpy_s(path, LG_PATH, paths[i]);
 
-        for (int j = 1; j <= NB_FILE; j++) {
+        for (int j = 22; j <= NB_FILE; j++) {
             char pathInter[LG_PATH];
 
             char charJ[3];
