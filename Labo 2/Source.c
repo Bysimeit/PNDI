@@ -18,6 +18,7 @@ double searchAcc(int numLine, char path[LG_PATH], int numCol);
 int nbMouvement(char path[LG_PATH]);
 double totalVacc(double x, double y, double z);
 int searchGender(int numPerson);
+int actionFile(char path[LG_PATH]);
 
 void main(void) {
     char paths[NB_FOLDER][LG_NAME] = {
@@ -56,6 +57,7 @@ void main(void) {
             strcpy_s(pathInter, LG_PATH, path);
             strcat(pathInter, charJ);
             strcat(pathInter, ".csv");
+            actionFile(pathInter);
 
             firstLine = startFile(pathInter, "trainSet.csv", index, firstLine, currentFile);
             index++;
@@ -68,7 +70,7 @@ void main(void) {
         char path[LG_PATH];
         strcpy_s(path, LG_PATH, paths[i]);
 
-        for (int j = 23; j <= NB_FILE; j++) {
+        for (int j = 22; j <= NB_FILE; j++) {
             char pathInter[LG_PATH];
 
             char charJ[3];
@@ -111,13 +113,42 @@ bool startFile(char path[LG_PATH], char createFile[LG_NAME], int index, bool fir
         double accZ = searchAcc(i, path, 13);
         
         double calcAcc = totalVacc(accX, accY, accZ);
+        int action = actionFile(path);
 
-        fprintf(writeFile, "%d,%d,%d,%f\n", i, gender, index, calcAcc);
+        fprintf(writeFile, "%d (%d),%d,%d,%f\n", i, action, gender, index, calcAcc);
     }
     
     fclose(writeFile);
 
     return firstLine;
+}
+
+int actionFile(char path[LG_PATH]) {
+    char recup[4];
+    recup[0] = path[20];
+    recup[1] = path[21];
+    recup[2] = path[22];
+
+    if (strcmp(recup, "dws") == 0) {
+        return 1;
+    }
+    if (strcmp(recup, "jog") == 0) {
+        return 2;
+    }
+    if (strcmp(recup, "sit") == 0) {
+        return 4;
+    }
+    if (strcmp(recup, "std") == 0) {
+        return 5;
+    }
+    if (strcmp(recup, "ups") == 0) {
+        return 3;
+    }
+    if (strcmp(recup, "wlk") == 0) {
+        return 6;
+    }
+
+    return 0;
 }
 
 double searchAcc(int numLine, char path[LG_PATH], int numCol) {
