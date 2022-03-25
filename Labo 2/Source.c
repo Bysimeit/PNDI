@@ -57,7 +57,6 @@ void main(void) {
             strcpy_s(pathInter, LG_PATH, path);
             strcat(pathInter, charJ);
             strcat(pathInter, ".csv");
-            actionFile(pathInter);
 
             firstLine = startFile(pathInter, "trainSet.csv", index, firstLine, currentFile);
             index++;
