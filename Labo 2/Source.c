@@ -1,262 +1,100 @@
-#define _CRT_SECURE_NO_WARNINGS
-#include <stdio.h>
-#include <string.h>
-#include <stdbool.h>
-#include <math.h>
+#include<stdio.h>
+#define NB_CLASSES 6
 
-#define NB_FILE 24
-#define NB_FILES_MAX 360
+typedef struct class Class;
+struct class {
+	int classNumber;
+	int nbGoodClass;
+	int nbOccurences;
+};
 
-#define NB_FOLDER 15
-#define LG_NAME 50
+void displayResultsByClass(int realClasses[], int estimatedClasses[], int nbTests);
+void initiationClasses(Class classes[]);
+void compareRealEstimated(int realClasses[], int estimatedClasses[], int nbTests, Class classes[]);
+void displayAccuracy(int realClasses[], int estimatedClasses[], int nbTests);
+void displayConfusionMatrix(int realClasses[], int estimatedClasses[], int nbTests);
+void createConfusionMatrix(int realClasses[], int estimatedClasses[], int nbTests, int confusionMatrix[][NB_CLASSES]);
 
-#define LG_VALUE 200
-#define LG_PATH 50
-
-bool startFile(char path[LG_PATH], char createFile[LG_NAME], int index, bool firstLine, int currentFile);
-double searchAcc(int numLine, char path[LG_PATH], int numCol);
-int nbMouvement(char path[LG_PATH]);
-double totalVacc(double x, double y, double z);
-int searchGender(int numPerson);
-int actionFile(char path[LG_PATH]);
-
-void main(void) {
-    char paths[NB_FOLDER][LG_NAME] = {
-        "A_DeviceMotion_data/dws_1/sub_",
-        "A_DeviceMotion_data/dws_2/sub_",
-        "A_DeviceMotion_data/dws_11/sub_",
-        "A_DeviceMotion_data/jog_9/sub_",
-        "A_DeviceMotion_data/jog_16/sub_",
-        "A_DeviceMotion_data/sit_5/sub_",
-        "A_DeviceMotion_data/sit_13/sub_",
-        "A_DeviceMotion_data/std_6/sub_",
-        "A_DeviceMotion_data/std_14/sub_",
-        "A_DeviceMotion_data/ups_3/sub_",
-        "A_DeviceMotion_data/ups_4/sub_",
-        "A_DeviceMotion_data/ups_12/sub_",
-        "A_DeviceMotion_data/wlk_7/sub_",
-        "A_DeviceMotion_data/wlk_8/sub_",
-        "A_DeviceMotion_data/wlk_15/sub_"
-    };
-
-    int index = 1;
-    int currentFile;
-
-    bool firstLine = false;
-    for (int i = 0; i < NB_FOLDER; i++) {
-        char path[LG_PATH];
-        strcpy_s(path, LG_PATH, paths[i]);
-
-        for (int j = 1; j <= NB_FILE - 2; j++) {
-            char pathInter[LG_PATH];
-
-            char charJ[3];
-            sprintf(charJ, "%d", j);
-            currentFile = j;
-
-            strcpy_s(pathInter, LG_PATH, path);
-            strcat(pathInter, charJ);
-            strcat(pathInter, ".csv");
-
-            firstLine = startFile(pathInter, "trainSet.csv", index, firstLine, currentFile);
-            index++;
-        }
-    }
-    puts("File trainSet.csv complete.");
-
-    firstLine = false;
-    for (int i = 0; i < NB_FOLDER; i++) {
-        char path[LG_PATH];
-        strcpy_s(path, LG_PATH, paths[i]);
-
-        for (int j = 22; j <= NB_FILE; j++) {
-            char pathInter[LG_PATH];
-
-            char charJ[3];
-            sprintf(charJ, "%d", j);
-            currentFile = j;
-
-            strcpy_s(pathInter, LG_PATH, path);
-            strcat(pathInter, charJ);
-            strcat(pathInter, ".csv");
-
-            firstLine = startFile(pathInter, "testSet.csv", index, firstLine, currentFile);
-            index++;
-        }
-    }
-    puts("File testSet.csv complete.");
+void main() {
+	int realClasses[9] = { 5, 2, 5, 3, 1, 3, 2, 4, 6 };
+	int estimatedClasses[9] = { 5, 5, 1, 2, 1, 3, 2, 4, 6 };
+	
+	displayResultsByClass(realClasses, estimatedClasses, 9);
+	displayAccuracy(realClasses, estimatedClasses, 9);
+	displayConfusionMatrix(realClasses, estimatedClasses, 9);
 }
 
-bool startFile(char path[LG_PATH], char createFile[LG_NAME], int index, bool firstLine, int currentFile) {
-    FILE* writeFile = fopen(createFile, "a+");
+void displayResultsByClass(int realClasses[], int estimatedClasses[], int nbTests) {
+	double percentage;
+	Class classes[NB_CLASSES];
+	initiationClasses(classes);
+	compareRealEstimated(realClasses, estimatedClasses, nbTests, classes);
 
-    if (writeFile == NULL) {
-        perror("Unable to open the file");
-        exit(1);
-    }
+	puts("Numero Classe\t|Bien classes\t|Total\t|Pourcentage");
+	puts("________________|_______________|_______|__________");
 
-    char line[200];
-    int nbLine;
-
-    int gender = searchGender(currentFile);
-
-    if (!firstLine) {
-        firstLine = true;
-        fprintf(writeFile, "%s", "Mouvement,Genre,Index,Vacc\n");
-    }
-    nbLine = nbMouvement(path);
-
-    for (int i = 0; i <= nbLine; i++) {
-        double accX = searchAcc(i, path, 11);
-        double accY = searchAcc(i, path, 12);
-        double accZ = searchAcc(i, path, 13);
-        
-        double calcAcc = totalVacc(accX, accY, accZ);
-        int action = actionFile(path);
-
-        fprintf(writeFile, "%d (%d),%d,%d,%f\n", i, action, gender, index, calcAcc);
-    }
-    
-    fclose(writeFile);
-
-    return firstLine;
+	for (int iClass = 0; iClass < NB_CLASSES; iClass++) {
+		percentage = (double)classes[iClass].nbGoodClass / classes[iClass].nbOccurences * 100;
+		printf("%d\t\t|", classes[iClass].classNumber);
+		printf("%d\t\t|", classes[iClass].nbGoodClass);
+		printf("%d\t|", classes[iClass].nbOccurences);
+		printf("%.2f%%\n", percentage);
+	}
 }
 
-int actionFile(char path[LG_PATH]) {
-    char recup[4];
-    recup[0] = path[20];
-    recup[1] = path[21];
-    recup[2] = path[22];
-
-    if (strcmp(recup, "dws") == 0) {
-        return 1;
-    }
-    if (strcmp(recup, "jog") == 0) {
-        return 2;
-    }
-    if (strcmp(recup, "sit") == 0) {
-        return 4;
-    }
-    if (strcmp(recup, "std") == 0) {
-        return 5;
-    }
-    if (strcmp(recup, "ups") == 0) {
-        return 3;
-    }
-    if (strcmp(recup, "wlk") == 0) {
-        return 6;
-    }
-
-    return 0;
+void initiationClasses(Class classes[]) {
+	for (int iClass = 0; iClass < NB_CLASSES; iClass++) {
+		classes[iClass].classNumber = iClass + 1;
+		classes[iClass].nbGoodClass = 0;
+		classes[iClass].nbOccurences = 0;
+	}
 }
 
-double searchAcc(int numLine, char path[LG_PATH], int numCol) {
-    FILE* afile = fopen(path, "r");
-
-    if (afile == NULL) {
-        perror("Unable to open the file");
-        exit(1);
-    }
-
-    char line[200];
-    int indiceAcc = 0;
-    double acc;
-    bool firstLine = true;
-
-    while (fgets(line, sizeof(line), afile)) {
-        char* token;
-        token = strtok(line, ",");
-        int convert;
-        if (!firstLine) {
-            sscanf(token, "%d", &convert);
-            if (convert == numLine) {
-                while (token != NULL) {
-                    indiceAcc++;
-                    if (indiceAcc == numCol) {
-                        sscanf(token, "%lf", &acc);
-                    }
-                    token = strtok(NULL, ",");
-                }
-                indiceAcc = 0;
-            }
-        }
-        firstLine = false;
-    }
-
-    fclose(afile);
-
-    return acc;
+void compareRealEstimated(int realClasses[], int estimatedClasses[], int nbTests, Class classes[]) {
+	int classIndex;
+	for (int iTest = 0; iTest < nbTests; iTest++) {
+		classIndex = realClasses[iTest] - 1;
+		classes[classIndex].nbOccurences++;
+		if (realClasses[iTest] == estimatedClasses[iTest]) {
+			classes[classIndex].nbGoodClass++;
+		}
+	}
 }
 
-int nbMouvement(char path[LG_PATH]) {
-    FILE* afile = fopen(path, "r");
-
-    if (afile == NULL) {
-        perror("Unable to open the file");
-        exit(1);
-    }
-
-    char line[200];
-    int nbMouvement;
-    bool firstLine = true;
-
-    while (fgets(line, sizeof(line), afile)) {
-        char* token;
-        token = strtok(line, ",");
-        if (!firstLine) {
-            sscanf(token, "%d", &nbMouvement);
-        }
-        firstLine = false;
-    }
-
-    fclose(afile);
-
-    return nbMouvement;
+void displayAccuracy(int realClasses[], int estimatedClasses[], int nbTests) {
+	int totalGoodClasses = 0;
+	double accuracy;
+	for (int iTest = 0; iTest < nbTests; iTest++) {
+		if (realClasses[iTest] == estimatedClasses[iTest]) {
+			totalGoodClasses++;
+		}
+	}
+	
+	accuracy = (double)totalGoodClasses / nbTests * 100;
+	printf("L'accuracy est de %.2f%%\n", accuracy);
 }
 
-double totalVacc(double x, double y, double z) {
-    x = pow(x,2);
-    y = pow(y,2);
-    z = pow(z,2);
-    
-    double total = x + y + y;
-    
-    return sqrt(total);
+void displayConfusionMatrix(int realClasses[], int estimatedClasses[], int nbTests) {
+	int confusionMatrix[NB_CLASSES][NB_CLASSES];
+	createConfusionMatrix(realClasses, estimatedClasses, nbTests, confusionMatrix);
+
+	for (int iLine = 0; iLine < NB_CLASSES; iLine++) {
+		for (int iRow = 0; iRow < NB_CLASSES; iRow++) {
+			printf("%d\t", confusionMatrix[iLine][iRow]);
+		}
+		printf("\n");
+	}
 }
 
-int searchGender(int numPerson) {
-    FILE* afile = fopen("data_subjects_info.csv", "r");
+void createConfusionMatrix(int realClasses[], int estimatedClasses[], int nbTests, int confusionMatrix[][NB_CLASSES]) {
+	for (int iLine = 0; iLine < NB_CLASSES; iLine++) {
+		for (int iRow = 0; iRow < NB_CLASSES; iRow++) {
+			confusionMatrix[iLine][iRow] = 0;
+		}
+	}
 
-    if (afile == NULL) {
-        perror("Unable to open the file");
-        exit(1);
-    }
-
-    char line[200];
-    int indiceGender = 0;
-    int gender = 0;
-    bool firstLine = true;
-
-    while (fgets(line, sizeof(line), afile)) {
-        char* token;
-        token = strtok(line, ",");
-        int convert;
-        if (!firstLine) {
-            sscanf(token, "%d", &convert);
-            if (convert == numPerson) {
-                while (token != NULL) {
-                    indiceGender++;
-                    if (indiceGender == 5) {
-                        sscanf(token, "%d", &gender);
-                    }
-                    token = strtok(NULL, ",");
-                }
-                indiceGender = 0;
-            }
-        }
-        firstLine = false;
-    }
-    fclose(afile);
-
-    return gender;
+	for (int iTest = 0; iTest < nbTests; iTest++) {
+		confusionMatrix[estimatedClasses[iTest]][realClasses[iTest]]++;
+	}
 }
+
