@@ -1,125 +1,202 @@
 #define _CRT_SECURE_NO_WARNINGS
 
-#include <stdio.h>
-#include <string.h>
-#include <math.h>
-#include <stdlib.h>
+#include "Phase2.h"
 
-#define LG_PATH 50
-#define LG_LINE 10000
-#define NB_COL 600
-#define NB_MOUVEMENT 6
-
-typedef struct data Data;
-
-struct data {
-    double moyenne[NB_COL];
-    double ecartType[NB_COL];
-    double moyenneGen;
+typedef struct model Model;
+struct model {
+    int type;
+    double averages[NB_COL];
+    double stds[NB_COL];
+    double globalAvg;
 };
 
-void readTrainSet(char path[LG_PATH], Data data[NB_MOUVEMENT], int nbLines[NB_MOUVEMENT]);
-void createFile(char path[LG_PATH], Data data[NB_MOUVEMENT], int nbLines[NB_MOUVEMENT]);
+void readModel(Model models[NB_MOVMENT], char path[LG_PATH]);
+int decomposition(char line[], double data[]);
+double calculDistanceEuclidienneAverage(double data[], Model models[], int iMovment);
+double calculDistanceEuclidienneStds(double data[], Model models[], int iMovment);
+double compareLowValue(double result, int indicators[NB_INDICATOR], int cell, int iMovment, double minStd);
 
 void main(void) {
-    Data data[NB_MOUVEMENT];
-    char path[LG_PATH] = "trainSet.csv";
+    Model models[NB_MOVMENT];
+    char pathModel[LG_PATH] = "fiModel.csv";
 
-    for (int iMouvement = 0; iMouvement < NB_MOUVEMENT; iMouvement++) {
-        for (int iCol = 0; iCol < NB_COL; iCol++) {
-            data[iMouvement].moyenne[iCol] = 0;
-            data[iMouvement].ecartType[iCol] = 0;
-        }
-        data[iMouvement].moyenneGen = 0;
+    readModel(models, pathModel);
+
+    FILE* fiSet = fopen("testSet.csv", "r");
+
+    if (fiSet == NULL) {
+        perror("Unable to open the file !");
+        exit(0);
     }
+    else {
+        int nbLine = 0;
+        char line[LG_LINE];
+        double data[NB_COL + 3];
+        int realClasses[NB_DEPLACEMENT];
+        int estimatedClasses[NB_DEPLACEMENT];
+        double resultAverage = 0;
+        double resultStds = 0;
+        int indicators[NB_INDICATOR];
+        fgets(line, sizeof(line), fiSet);
+        while (fgets(line, sizeof(line), fiSet)) {
+            int numMovment = decomposition(line, data);
+            realClasses[nbLine] = numMovment;
 
-    int nbLines[NB_MOUVEMENT];
-    for (int iMouvement = 0; iMouvement < NB_MOUVEMENT; iMouvement++) {
-        nbLines[iMouvement] = 0;
-    }
+            double moyenneGen = 0;
+            for (int i = 3; i < NB_COL; i++) {
+                moyenneGen += data[i];
+            }
+            moyenneGen = moyenneGen / NB_COL;
 
-    readTrainSet(path, data, nbLines);
+            double minStd = DBL_MAX;
+            double minAverage = DBL_MAX;
+            double minMoyenneGen = DBL_MAX;
+            for (int iMovment = 0; iMovment < NB_MOVMENT; iMovment++) {
+                resultAverage = calculDistanceEuclidienneAverage(data, models, iMovment);
+                minAverage = compareLowValue(resultAverage, indicators, 0, iMovment, minAverage);
+                resultStds = calculDistanceEuclidienneStds(data, models, iMovment);
+                minStd = compareLowValue(resultStds, indicators, 1, iMovment, minStd);
 
-    char createPath[LG_PATH] = "fiModel.csv";
-    createFile(createPath, data, nbLines);
-}
-
-void readTrainSet(char path[LG_PATH], Data data[NB_MOUVEMENT], int nbLines[NB_MOUVEMENT]) {
-    FILE* aFile = fopen(path, "r");
-
-    if (aFile == NULL) {
-        perror("Unable to open the file");
-        exit(1);
-    }
-
-    char* token;
-    char line[LG_LINE];
-
-    double value;
-    int compareMouvement;
-    int iMouvement = 1;
-
-    fgets(line, sizeof(line), aFile);
-    while (fgets(line, sizeof(line), aFile)) {
-        token = strtok(line, ",");
-        int iCol = 0;
-        while (token != NULL) {
-            if (iCol == 0) {
-                sscanf(token, "%d", &compareMouvement);
-                if (compareMouvement != iMouvement) {
-                    iMouvement = compareMouvement;
+                double relayMoyenne;
+                if (models[iMovment].globalAvg > moyenneGen) {
+                    relayMoyenne = models[iMovment].globalAvg - moyenneGen;
+                } else {
+                    relayMoyenne = moyenneGen - models[iMovment].globalAvg;
                 }
-                token = strtok(NULL, ",");
-                iCol++;
+
+                if (relayMoyenne < minMoyenneGen) {
+                    minMoyenneGen = relayMoyenne;
+                    indicators[2] = iMovment + 1;
+                }
             }
-            if (iCol < 3) {
-                token = strtok(NULL, ",");
-                iCol++;
-            } else {
-                sscanf(token, "%lf", &value);
-                data[iMouvement - 1].moyenne[iCol - 3] += value;
-                data[iMouvement - 1].ecartType[iCol - 3] += pow(value, 2);
-                token = strtok(NULL, ",");
-                iCol++;
+
+            if (indicators[0] == indicators[1] || indicators[0] == indicators[2]) {
+                estimatedClasses[nbLine] = indicators[0];
             }
+            else {
+                if (indicators[1] == indicators[2]) {
+                    estimatedClasses[nbLine] = indicators[1];
+                }
+                else {
+                    estimatedClasses[nbLine] = indicators[0];
+                }
+            }
+            nbLine++;
         }
-        nbLines[iMouvement - 1]++;
+
+        displayResultsByClass(realClasses, estimatedClasses, NB_DEPLACEMENT);
+        displayAccuracy(realClasses, estimatedClasses, NB_DEPLACEMENT);
+        displayConfusionMatrix(realClasses, estimatedClasses, NB_DEPLACEMENT);
     }
-    fclose(aFile);
 }
 
-void createFile(char path[LG_PATH], Data data[NB_MOUVEMENT], int nbLines[NB_MOUVEMENT]) {
-    FILE* writeFile = fopen(path, "w");
+void readModel(Model models[NB_MOVMENT], char path[LG_PATH]) {
+    FILE* fiRead = fopen(path, "r");
 
-    if (writeFile == NULL) {
-        perror("Unable to open the file");
-        exit(1);
+    if (fiRead == NULL) {
+        perror("Unable to open the file !");
+        exit(0);
     }
+    else {
+        char line[LG_LINE];
+        double data[NB_COL + 1];
 
-    fprintf(writeFile, "%s", "Mouvement");
-    for (int i = 0; i < NB_COL; i++) {
-        fprintf(writeFile, "%s", ",Vacc");
-    }
-    fprintf(writeFile, "%s", "\n");
+        fgets(line, sizeof(line), fiRead);
+        while (fgets(line, sizeof(line), fiRead)) {
+            char* token = strtok(line, ",");
+            int i = 0;
+            while (token != NULL) {
+                sscanf(token, "%lf", &data[i]);
+                i++;
+                token = strtok(NULL, ",");
+            }
+            int movment = (int)data[0];
+            models[movment - 1].type = movment;
 
-    for (int iMouvement = 0; iMouvement < NB_MOUVEMENT; iMouvement++) {
-        double totGen = 0;
-        fprintf(writeFile, "%d", iMouvement + 1);
-        for (int iCol = 0; iCol < NB_COL; iCol++) {
-            fprintf(writeFile, ",%lf", data[iMouvement].moyenne[iCol] / nbLines[iMouvement]);
-            totGen += data[iMouvement].moyenne[iCol];
+            for (i = 1; i < NB_COL; i++) {
+                models[movment - 1].averages[i - 1] = data[i];
+            }
+
+            fgets(line, sizeof(line), fiRead);
+            token = strtok(line, ",");
+            i = 0;
+            while (token != NULL) {
+                sscanf(token, "%lf", &data[i]);
+                i++;
+                token = strtok(NULL, ",");
+            }
+
+            movment = (int)data[0];
+            for (i = 1; i < NB_COL; i++) {
+                models[movment - 1].stds[i - 1] = data[i];
+            }
+
+            fgets(line, sizeof(line), fiRead);
+            token = strtok(line, ",");
+            i = 0;
+            while (token != NULL) {
+                sscanf(token, "%lf", &data[i]);
+                i++;
+                token = strtok(NULL, ",");
+            }
+
+            movment = (int)data[0];
+            models[movment - 1].globalAvg = data[1];
         }
-        fprintf(writeFile, "%s", "\n");
-
-        fprintf(writeFile, "%d", iMouvement + 1);
-        for (int iCol = 0; iCol < NB_COL; iCol++) {
-            fprintf(writeFile, ",%lf", sqrt(data[iMouvement].ecartType[iCol] / nbLines[iMouvement] - pow(data[iMouvement].moyenne[iCol] / nbLines[iMouvement], 2)));
-        }
-        fprintf(writeFile, "%s", "\n");
-
-        fprintf(writeFile, "%d", iMouvement + 1);
-        fprintf(writeFile, ",%lf", totGen / (nbLines[iMouvement] * NB_COL));
-        fprintf(writeFile, "%s", "\n");
     }
-    fclose(writeFile);
+}
+
+int decomposition(char line[], double data[])
+{
+    int i = 0;
+    char* token = NULL;
+    char* nextToken = NULL;
+    char s[2] = ",";
+    int mvt;
+    token = strtok_s(line, s, &nextToken);
+    mvt = atoi(line);
+    token = strtok_s(NULL, s, &nextToken);
+    while (token != NULL)
+    {
+        data[i] = atof(token);
+        i++;
+        token = strtok_s(NULL, s, &nextToken);
+    }
+    return mvt;
+}
+
+double calculDistanceEuclidienneAverage(double data[], Model models[], int iMovment) {
+    double result = 0;
+    int iAverage = 0;
+    for (int i = 3; i < 603; i++) {
+        result += pow(data[i] - models[iMovment].averages[iAverage], 2);
+        iAverage++;
+    }
+
+    return sqrt(result);
+}
+
+double calculDistanceEuclidienneStds(double data[], Model models[], int iMovment) {
+    double std[NB_COL];
+    int iStd = 0;
+    for (int i = 3; i < NB_COL + 3; i++) {
+        std[iStd] = sqrt(pow((data[i] - models[iMovment].averages[iStd]), 2));
+        iStd++;
+    }
+
+    double result = 0;
+    for (int i = 0; i < NB_COL - 1; i++) {
+        result += pow(std[i] - models[iMovment].stds[i], 2);
+    }
+    result = sqrt(result);
+    return result;
+}
+
+double compareLowValue(double result, int indicators[NB_INDICATOR], int cell, int iMovment, double minValue) {
+    if (result < minValue) {
+        minValue = result;
+        indicators[cell] = iMovment + 1;
+    }
+
+    return minValue;
 }
