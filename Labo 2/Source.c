@@ -69,7 +69,7 @@ void displayAccuracy(int realClasses[], int estimatedClasses[], int nbTests) {
 			totalGoodClasses++;
 		}
 	}
-	
+
 	accuracy = (double)totalGoodClasses / nbTests * 100;
 	printf("L'accuracy est de %.2f%%\n", accuracy);
 }
@@ -78,8 +78,8 @@ void displayConfusionMatrix(int realClasses[], int estimatedClasses[], int nbTes
 	int confusionMatrix[NB_CLASSES][NB_CLASSES];
 	createConfusionMatrix(realClasses, estimatedClasses, nbTests, confusionMatrix);
 
-	for (int iLine = 0; iLine < NB_CLASSES; iLine++) {
-		for (int iRow = 0; iRow < NB_CLASSES; iRow++) {
+	for (int iLine = 1; iLine <= NB_CLASSES; iLine++) {
+		for (int iRow = 1; iRow <= NB_CLASSES; iRow++) {
 			printf("%d\t", confusionMatrix[iLine][iRow]);
 		}
 		printf("\n");
@@ -87,8 +87,8 @@ void displayConfusionMatrix(int realClasses[], int estimatedClasses[], int nbTes
 }
 
 void createConfusionMatrix(int realClasses[], int estimatedClasses[], int nbTests, int confusionMatrix[][NB_CLASSES]) {
-	for (int iLine = 0; iLine < NB_CLASSES; iLine++) {
-		for (int iRow = 0; iRow < NB_CLASSES; iRow++) {
+	for (int iLine = 0; iLine <= NB_CLASSES; iLine++) {
+		for (int iRow = 0; iRow <= NB_CLASSES; iRow++) {
 			confusionMatrix[iLine][iRow] = 0;
 		}
 	}
@@ -97,4 +97,3 @@ void createConfusionMatrix(int realClasses[], int estimatedClasses[], int nbTest
 		confusionMatrix[estimatedClasses[iTest]][realClasses[iTest]]++;
 	}
 }
-
