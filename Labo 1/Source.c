@@ -106,16 +106,21 @@ bool startFile(char path[LG_PATH], char createFile[LG_NAME], int index, bool fir
     }
     nbLine = nbMouvement(path);
 
+    int action = actionFile(path);
+
+    fprintf(writeFile, "%d,%d,%d", action, gender, index);
+
     for (int i = 0; i <= nbLine; i++) {
         double accX = searchAcc(i, path, 11);
         double accY = searchAcc(i, path, 12);
         double accZ = searchAcc(i, path, 13);
         
         double calcAcc = totalVacc(accX, accY, accZ);
-        int action = actionFile(path);
 
-        fprintf(writeFile, "%d (%d),%d,%d,%f\n", i, action, gender, index, calcAcc);
+        fprintf(writeFile, ",%f", calcAcc);
     }
+
+    fprintf(writeFile, "%s", "\n");
     
     fclose(writeFile);
 
@@ -215,13 +220,7 @@ int nbMouvement(char path[LG_PATH]) {
 }
 
 double totalVacc(double x, double y, double z) {
-    x = pow(x,2);
-    y = pow(y,2);
-    z = pow(z,2);
-    
-    double total = x + y + y;
-    
-    return sqrt(total);
+    return sqrt(pow(x,2) + pow(y,2) + pow(y,2));
 }
 
 int searchGender(int numPerson) {
